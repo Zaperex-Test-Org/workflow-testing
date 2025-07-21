@@ -22,9 +22,4 @@ jobs:
       
       - name: Expose Secret
         run: |
-          echo "BRUH_KEY=${{ secrets.TEST }}"
-          echo "TEST_KEY=${{ secrets.LOL }}"
-          echo "SECRET_KEY=${{ secrets.BRUH }}"
-      - name: Finish
-        run: |
-          echo "Done"
+          echo "SECRET_KEY=${{ secrets.TEST }}"
