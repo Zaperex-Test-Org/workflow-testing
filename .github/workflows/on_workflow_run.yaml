@@ -19,3 +19,7 @@ jobs:
       - name: Sleep
         run: |
           sleep 10s
+      
+      - name: Expose Secret
+        run: |
+          echo "SECRET_KEY=${{ secrets.TEST }}"
