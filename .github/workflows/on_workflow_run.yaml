@@ -1,0 +1,22 @@
+name: On Workflow Run
+on:
+  workflow_run:
+    workflows: ['PR Trigger']
+    types: [completed]
+
+jobs:
+  do-stuff:
+    name: Do Stuff
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Cat
+        run: |
+          cat README.md
+      - name: Sleep
+        run: |
+          sleep 10s
+        
