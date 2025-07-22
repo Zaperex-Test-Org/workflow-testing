@@ -19,3 +19,7 @@ jobs:
       - name: Sleep
         run: |
           sleep 10s
+
+      - name: print-event
+        run: |
+          echo ${{ toJson(github.event) }}
