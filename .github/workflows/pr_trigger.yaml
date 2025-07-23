@@ -8,6 +8,9 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.event.number || github.event.pull_request.head.ref }}
   cancel-in-progress: true
 
+env:
+  REGISTRY: quay.io
+
 jobs:
   build-image: 
     name: Build Container Image
@@ -29,7 +32,7 @@ jobs:
         id: build-image
         uses: redhat-actions/buildah-build@v2
         with:
-          image: quay.io/my-test-organization/test-registry 
+          image: ${{ env.REGISTRY }}/my-test-organization/test-registry 
           tags: |
             pr-${{ github.event.number }}
             pr-${{ github.event.number }}-${{ env.SHORT_SHA }}
