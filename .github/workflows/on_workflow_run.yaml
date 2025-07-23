@@ -25,15 +25,14 @@ jobs:
           if [ -n "$PR_NUMBER" ]; then
             echo "pr-number=$PR_NUMBER" >> $GITHUB_OUTPUT
             echo "artifact-name=container-image-pr-$PR_NUMBER-$SHA" >> $GITHUB_OUTPUT
-            echo ${{ SHA }}
           else
             echo "No PR found in workflow run"
             exit 1
           fi
 
-      - name: print-event
+      - name: print-github-stuff
         run: |
-          echo "${{ toJson(github.event) }}"
+          echo '${{ toJson(github) }}' | jq .
 
       - name: Download image artifact
         uses: actions/download-artifact@v4
