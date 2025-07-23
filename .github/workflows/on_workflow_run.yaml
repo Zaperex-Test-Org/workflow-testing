@@ -3,6 +3,10 @@ on:
   workflow_run:
     workflows: ['PR Trigger']
     types: [completed]
+
+env:
+  REGISTRY: quay.io
+
 jobs:
   publish-image:
     name: Publish Container Image
@@ -67,6 +71,7 @@ jobs:
         id: push
         uses: redhat-actions/push-to-registry@v2
         with:
+          registry: ${{ env.REGISTRY }}
           image: ${{ steps.load-image.outputs.image-name }}
           tags: ${{ steps.load-image.outputs.tags }}
           username: ${{ secrets.QUAY_USERNAME }}
