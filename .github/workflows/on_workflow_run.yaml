@@ -3,11 +3,6 @@ on:
   workflow_run:
     workflows: ['PR Trigger']
     types: [completed]
-
-env:
-  REGISTRY: quay.io
-  REGISTRY_NAMESPACE: my-test-organization
-
 jobs:
   publish-image:
     name: Publish Container Image
@@ -74,7 +69,6 @@ jobs:
         with:
           image: ${{ steps.load-image.outputs.image-name }}
           tags: ${{ steps.load-image.outputs.tags }}
-          registry: ${{ env.REGISTRY }}/${{ env.REGISTRY_NAMESPACE }}
           username: ${{ secrets.QUAY_USERNAME }}
           password: ${{ secrets.QUAY_PASSWORD }}
 
@@ -90,13 +84,12 @@ jobs:
             }
             
             const prNumber = pullRequest.number;
-            const registryUrl = '${{ env.REGISTRY }}/${{ env.REGISTRY_NAMESPACE }}';
             const imageName = '${{ steps.load-image.outputs.image-name }}';
             const shortSha = '${{ steps.get-pr.outputs.short-sha }}';
             
             const imageUrls = [
-              `${registryUrl}/${imageName}:pr-${prNumber}`,
-              `${registryUrl}/${imageName}:pr-${prNumber}-${shortSha}`
+              `${imageName}:pr-${prNumber}`,
+              `$${imageName}:pr-${prNumber}-${shortSha}`
             ];
             
             const imageUrlsText = imageUrls.map(url => `* [\`${url}\`](https://${url})`).join('\n');
