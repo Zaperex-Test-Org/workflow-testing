@@ -27,12 +27,12 @@ jobs:
         id: get-pr
         run: |
           PR_NUMBER=$(echo '${{ toJson(github.event.workflow_run.pull_requests) }}' | jq -r '.[0].number // empty')
-          REF=${{ github.event.workflow_run.pull_requests[0].head.ref }}
-
-          SHA=$(git rev-parse --short=8 $REF)
+          FULL_SHA="${{ github.event.workflow_run.head_sha }}"
+          SHORT_SHA=$(echo "$FULL_SHA" | cut -c1-8)
           if [ -n "$PR_NUMBER" ]; then
             echo "pr-number=$PR_NUMBER" >> $GITHUB_OUTPUT
-            echo "artifact-name=container-image-pr-$PR_NUMBER-$SHA" >> $GITHUB_OUTPUT
+            echo "short-sha=$SHORT_SHA" >> $GITHUB_OUTPUT
+            echo "artifact-name=container-image-pr-$PR_NUMBER-$SHORT_SHA" >> $GITHUB_OUTPUT
           else
             echo "No PR found in workflow run"
             exit 1
@@ -92,11 +92,11 @@ jobs:
             const prNumber = pullRequest.number;
             const registryUrl = '${{ env.REGISTRY }}/${{ env.REGISTRY_NAMESPACE }}';
             const imageName = '${{ steps.load-image.outputs.image-name }}';
-            const shortSha = '${{ github.event.workflow_run.head_sha }}'.substring(0, 7);
+            const shortSha = '${{ steps.get-pr.outputs.short-sha }}';
             
             const imageUrls = [
               `${registryUrl}/${imageName}:pr-${prNumber}`,
-              `${registryUrl}/${imageName}:${{ github.event.workflow_run.head_sha }}`
+              `${registryUrl}/${imageName}:pr-${prNumber}-${shortSha}`
             ];
             
             const imageUrlsText = imageUrls.map(url => `* [\`${url}\`](https://${url})`).join('\n');
