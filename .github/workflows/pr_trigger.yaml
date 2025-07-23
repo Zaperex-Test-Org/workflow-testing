@@ -46,7 +46,14 @@ jobs:
           podman save ${{ steps.build-image.outputs.image }}:pr-${{ github.event.number }} ${{ steps.build-image.outputs.image }}:pr-${{ github.event.number }}-${{ env.SHORT_SHA }} -o artifacts/image.tar
           echo "pr-${{ github.event.number }}" > artifacts/tags.txt
           echo "pr-${{ github.event.number }}-${{ env.SHORT_SHA }}" >> artifacts/tags.txt
-          echo "${{ steps.build-image.outputs.image }}" > artifacts/image-name.txt
+          
+          # Strip only the registry hostname from image name for downstream use
+          # e.g. "quay.io/my-test-organization/test-registry" -> "my-test-organization/test-registry"
+          FULL_IMAGE_NAME="${{ steps.build-image.outputs.image }}"
+          IMAGE_NAME=$(echo "$FULL_IMAGE_NAME" | sed 's|^quay\.io/||')
+          echo "Full image: $FULL_IMAGE_NAME"
+          echo "Stripped image name: $IMAGE_NAME"
+          echo "$IMAGE_NAME" > artifacts/image-name.txt
 
       - name: Upload image artifact
         uses: actions/upload-artifact@v4
