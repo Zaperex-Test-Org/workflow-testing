@@ -19,14 +19,14 @@ jobs:
           fetch-depth: 0
           ref: ${{ github.event.pull_request.head.ref }}
           repository: ${{ github.event.pull_request.head.repo.full_name }}
-      - name: Build Image with Buildah
+      - name: Build Image with Buildah 
         id: build-image
         uses: redhat-actions/buildah-build@v2
         with:
           image: test-app
           tags: |
             pr-${{ github.event.number }}
-            ${{ github.sha }}
+            ${{ github.event.pull_request.head.sha }}
           containerfiles: |
             ./Dockerfile
 
@@ -35,19 +35,19 @@ jobs:
           mkdir -p artifacts
           buildah push ${{ steps.build-image.outputs.image }}:pr-${{ github.event.number }} oci-archive:artifacts/image.tar
           echo "pr-${{ github.event.number }}" > artifacts/tags.txt
-          echo "${{ github.sha }}" >> artifacts/tags.txt
+          echo "${{ github.event.pull_request.head.sha }}" >> artifacts/tags.txt
           echo "${{ steps.build-image.outputs.image }}" > artifacts/image-name.txt
 
       - name: Upload image artifact
         uses: actions/upload-artifact@v4
         with:
-          name: container-image-pr-${{ github.event.number }}-${{ github.sha }}
+          name: container-image-pr-${{ github.event.number }}-${{ github.event.pull_request.head.sha }}
           path: artifacts/
           retention-days: 7
 
-      - name: print_event
+      - name: print_github_stuff
         run: |
-          echo "${{ toJson(github.event) }}"
+          echo "${{ toJson(github) }}"
 
       - name: Finish
         run: |
