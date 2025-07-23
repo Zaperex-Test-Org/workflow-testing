@@ -47,7 +47,7 @@ jobs:
 
       - name: print_github_stuff
         run: |
-          echo "${{ toJson(github) }}"
+          echo '${{ toJson(github) }}' | jq .
 
       - name: Finish
         run: |
