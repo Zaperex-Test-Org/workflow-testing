@@ -21,7 +21,8 @@ jobs:
         id: get-pr
         run: |
           PR_NUMBER=$(echo '${{ toJson(github.event.workflow_run.pull_requests) }}' | jq -r '.[0].number // empty')
-          SHA="${{ github.event.workflow_run.head_sha }}"
+          
+          SHA=$(git rev-parse --short=8 $REF)
           if [ -n "$PR_NUMBER" ]; then
             echo "pr-number=$PR_NUMBER" >> $GITHUB_OUTPUT
             echo "artifact-name=container-image-pr-$PR_NUMBER-$SHA" >> $GITHUB_OUTPUT
