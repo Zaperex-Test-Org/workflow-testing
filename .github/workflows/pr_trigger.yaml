@@ -19,16 +19,6 @@ jobs:
           fetch-depth: 0
           ref: ${{ github.event.pull_request.head.ref }}
           repository: ${{ github.event.pull_request.head.repo.full_name }}
-
-      - name: Create Dockerfile
-        run: |
-          cat << 'EOF' > Dockerfile
-          FROM registry.access.redhat.com/ubi8/ubi:latest
-          COPY README.md /app/
-          WORKDIR /app
-          CMD ["cat", "README.md"]
-          EOF
-
       - name: Build Image with Buildah
         id: build-image
         uses: redhat-actions/buildah-build@v2
