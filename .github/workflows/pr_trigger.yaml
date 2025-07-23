@@ -9,12 +9,9 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  do-stuff: 
-    name: Do Stuff
+  build-image: 
+    name: Build Container Image
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        sleep_timer: [1, 10, 20]
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -22,13 +19,46 @@ jobs:
           fetch-depth: 0
           ref: ${{ github.event.pull_request.head.ref }}
           repository: ${{ github.event.pull_request.head.repo.full_name }}
-      - name: Sleep
+
+      - name: Create Dockerfile
         run: |
-          echo "Sleeping for ${{ matrix.sleep_timer }}s"
-          sleep ${{ matrix.sleep_timer }}s
-      - name: Cat
+          cat << 'EOF' > Dockerfile
+          FROM registry.access.redhat.com/ubi8/ubi:latest
+          COPY README.md /app/
+          WORKDIR /app
+          CMD ["cat", "README.md"]
+          EOF
+
+      - name: Build Image with Buildah
+        id: build-image
+        uses: redhat-actions/buildah-build@v2
+        with:
+          image: test-app
+          tags: |
+            pr-${{ github.event.number }}
+            ${{ github.sha }}
+          containerfiles: |
+            ./Dockerfile
+
+      - name: Save image to tar
         run: |
-          cat README.md
+          mkdir -p artifacts
+          buildah push ${{ steps.build-image.outputs.image }}:pr-${{ github.event.number }} oci-archive:artifacts/image.tar
+          echo "pr-${{ github.event.number }}" > artifacts/tags.txt
+          echo "${{ github.sha }}" >> artifacts/tags.txt
+          echo "${{ steps.build-image.outputs.image }}" > artifacts/image-name.txt
+
+      - name: Upload image artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: container-image-pr-${{ github.event.number }}-${{ github.sha }}
+          path: artifacts/
+          retention-days: 7
+
+      - name: print_event
+        run: |
+          echo "${{ toJson(github.event) }}"
+
       - name: Finish
         run: |
-          echo "Done"
+          echo "Image built and uploaded as artifact"
