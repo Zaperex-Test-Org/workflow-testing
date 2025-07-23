@@ -27,7 +27,8 @@ jobs:
         id: get-pr
         run: |
           PR_NUMBER=$(echo '${{ toJson(github.event.workflow_run.pull_requests) }}' | jq -r '.[0].number // empty')
-          
+          REF=${{ github.event.workflow_run.pull_requests[0].head.ref }}
+
           SHA=$(git rev-parse --short=8 $REF)
           if [ -n "$PR_NUMBER" ]; then
             echo "pr-number=$PR_NUMBER" >> $GITHUB_OUTPUT
