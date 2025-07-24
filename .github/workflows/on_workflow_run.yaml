@@ -95,7 +95,7 @@ jobs:
             
             const imageUrls = [
               `${imageName}:pr-${prNumber}`,
-              `$${imageName}:pr-${prNumber}-${shortSha}`
+              `${imageName}:pr-${prNumber}-${shortSha}`
             ];
             
             const imageUrlsText = imageUrls.map(url => `* [\`${url}\`](https://${url})`).join('\n');
