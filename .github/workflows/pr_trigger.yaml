@@ -60,7 +60,7 @@ jobs:
         
           podman save $TAGS_LIST -o artifacts/image.tar
           echo "$TAGS_LIST" > artifacts/tags.txt
-          echo "my-test-organization/test-registry" > artifacts/imageName.txt
+          echo "my-test-organization/test-registry" > artifacts/imagename.txt
           echo "${{ env.REGISTRY }}" > artifacts/registry.txt
 
       - name: Upload image artifact
