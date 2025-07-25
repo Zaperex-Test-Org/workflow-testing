@@ -80,9 +80,10 @@ jobs:
         uses: actions/github-script@v7
         env:
           PUSHED_TAGS: ${{ steps.load-image.outputs.tags }}
+          PR_NUMBER: ${{ steps.get-pr.outputs.pr-number }}
         with:
           script: |
-            const prNumber = '${{ env.PR_NUMBER }}';
+            const prNumber = process.env.PR_NUMBER;
             const pushedTags = process.env.PUSHED_TAGS;
             
             if (!prNumber) {
