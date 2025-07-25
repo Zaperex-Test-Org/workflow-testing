@@ -98,25 +98,24 @@ jobs:
             
             const tags = pushedTags.trim().split('\n').filter(tag => tag.trim());
             
-              if (tags.length === 0) {
-                console.log('No valid tags found');
-                return;
-              }
-              
-              console.log(`Found ${tags.length} tags:`, tags);
-              
-              // Generate markdown links for each tag
-              const tagLinks = tags.map(fullTag => {
-                const tag = fullTag.split(':')[1]; // Extract just the tag part for display
-                return `* [\`${fullTag}\`](https://${fullTag.replace(':', '/')})`;
-              }).join('\n');
-              
-              const body = `The image is available at::\n\n${tagLinks}\n\n`;
-              
-              github.rest.issues.createComment({
-                issue_number: parseInt(prNumber),
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                body: body
-              })
-  
+            if (tags.length === 0) {
+              console.log('No valid tags found');
+              return;
+            }
+            
+            console.log(`Found ${tags.length} tags:`, tags);
+            
+            // Generate markdown links for each tag
+            const tagLinks = tags.map(fullTag => {
+              return `* [\`${fullTag}\`](https://${fullTag})`;
+            }).join('\n');
+            
+            const body = `The image is available at:\n\n${tagLinks}\n\n`;
+            
+            github.rest.issues.createComment({
+              issue_number: parseInt(prNumber),
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: body
+            })
+
