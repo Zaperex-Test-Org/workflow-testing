@@ -28,14 +28,21 @@ jobs:
           SHORT_SHA=$(git rev-parse --short=8 $REF)
           echo "SHORT_SHA: $SHORT_SHA"
           echo "SHORT_SHA=$SHORT_SHA" >> $GITHUB_ENV
+      
+      - name: Extract metadata (tags, labels) for Docker
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/my-test-organization/test-registry
+          tags: |
+            pr-${{ github.event.number }}
+            pr-${{ github.event.number }}-${{ env.SHORT_SHA }}
+            
       - name: Build Image with Buildah 
         id: build-image
         uses: redhat-actions/buildah-build@v2
         with:
-          image: ${{ env.REGISTRY }}/my-test-organization/test-registry 
-          tags: |
-            pr-${{ github.event.number }}
-            pr-${{ github.event.number }}-${{ env.SHORT_SHA }}
+          tags: ${{ steps.meta.outputs.tags }}
           containerfiles: |
             ./Dockerfile
 
@@ -43,17 +50,18 @@ jobs:
         run: |
           podman images
           mkdir -p artifacts
-          podman save ${{ steps.build-image.outputs.image }}:pr-${{ github.event.number }} ${{ steps.build-image.outputs.image }}:pr-${{ github.event.number }}-${{ env.SHORT_SHA }} -o artifacts/image.tar
-          echo "pr-${{ github.event.number }}" > artifacts/tags.txt
-          echo "pr-${{ github.event.number }}-${{ env.SHORT_SHA }}" >> artifacts/tags.txt
-          
-          # Strip only the registry hostname from image name for downstream use
-          # e.g. "quay.io/my-test-organization/test-registry" -> "my-test-organization/test-registry"
-          FULL_IMAGE_NAME="${{ steps.build-image.outputs.image }}"
-          IMAGE_NAME=$(echo "$FULL_IMAGE_NAME" | sed 's|^quay\.io/||')
-          echo "Full image: $FULL_IMAGE_NAME"
-          echo "Stripped image name: $IMAGE_NAME"
-          echo "$IMAGE_NAME" > artifacts/image-name.txt
+
+          # Extract the built image tags from the metadata
+          TAGS_LIST="${{ steps.meta.outputs.tags }}"
+
+          # Save all the built images to tar (podman save can handle multiple tags)
+          echo "Saving images with tags:"
+          echo "$TAGS_LIST"
+        
+          podman save $TAGS_LIST -o artifacts/image.tar
+          echo "$TAGS_LIST" > artifacts/tags.txt
+          echo "my-test-organization/test-registry" > artifacts/imageName.txt
+          echo "${{ env.REGISTRY }}" > artifacts/registry.txt
 
       - name: Upload image artifact
         uses: actions/upload-artifact@v4
