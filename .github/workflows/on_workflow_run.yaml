@@ -38,9 +38,9 @@ jobs:
             exit 1
           fi
 
-      # - name: print-github-stuff
-      #   run: |
-      #     echo '${{ toJson(github) }}' | jq .
+      - name: print-github-stuff
+        run: |
+          echo '${{ toJson(github) }}' | jq .
 
       - name: Download image artifact
         uses: actions/download-artifact@v4
