@@ -55,6 +55,7 @@ jobs:
             echo "✓ External PR from fork from non-rhdh team member - using external environment for security"
           fi
   build-image: 
+    needs: authorize
     name: Build Container Image
     runs-on: ubuntu-latest
     steps:
