@@ -23,6 +23,8 @@ runs:
       run: |
         echo "Checking if ${{ inputs.author }} is in ${{ inputs.team }} team..."
         
+        gh api "/orgs/Zaperex-Test-Org/teams/${{ inputs.team }}/members" --jq '.[].login' 2>/dev/null
+
         team_members=$(gh api "/orgs/Zaperex-Test-Org/teams/${{ inputs.team }}/members" --jq '.[].login' 2>/dev/null || echo "")
         
         # Convert space-separated list to newline-separated and check for exact match
