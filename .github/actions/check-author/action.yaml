@@ -1,12 +1,12 @@
 name: "Check Author"
-description: "Checks if the author is in the specified team in the redhat-developer organization"
+description: "Checks if the author is in the specified team in the Zaperex-Test-Org organization"
 
 inputs:
   author:
     description: "The author to check"
     required: true
   team:
-    description: "The team to check in the redhat-developer organization"
+    description: "The team to check in the Zaperex-Test-Org organization"
     required: true
 
 outputs:
@@ -23,7 +23,7 @@ runs:
       run: |
         echo "Checking if ${{ inputs.author }} is in ${{ inputs.team }} team..."
         
-        team_members=$(gh api "/orgs/redhat-developer/teams/${{ inputs.team }}/members" --jq '.[].login' 2>/dev/null || echo "")
+        team_members=$(gh api "/orgs/Zaperex-Test-Org/teams/${{ inputs.team }}/members" --jq '.[].login' 2>/dev/null || echo "")
         
         # Convert space-separated list to newline-separated and check for exact match
         # Using grep with fixed string (`-F`) and exact line match (^$ or `-x`) for security
