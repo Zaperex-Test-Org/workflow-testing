@@ -1,37 +1,55 @@
 name: "Check Author"
-description: "Checks if the author is in the specified team in the redhat-developer organization"
+description: "Checks if the author is an active member of the specified team in the specified organization"
 
 inputs:
   author:
     description: "The author to check"
     required: true
+  organization:
+    description: "The organization to check"
+    required: true
   team:
-    description: "The team to check in the redhat-developer organization"
+    description: "The team to check in the organization"
     required: true
 
+  gh_token:
+    description: "GitHub token with read:org permissions"
+    required: true
+
+
 outputs:
-  is_team_member:
-    description: "Whether the specified author is in the specified team"
-    value: ${{ steps.check.outputs.is_team_member }}
+  is_active_member:
+    description: "Whether the specified author is an active member of the specified team"
+    value: ${{ steps.check.outputs.is_active_member }}
 
 runs:
   using: "composite"
   steps:
-    - name: Check if author is in the team
+
+    - name: Check if author is an active team member
       id: check
       shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.gh_token }}
       run: |
-        echo "Checking if ${{ inputs.author }} is in ${{ inputs.team }} team..."
+        echo "Checking if ${{ inputs.author }} is an active member of ${{ inputs.team }} team in ${{ inputs.organization }}..."
         
-        team_members=$(gh api "/orgs/redhat-developer/teams/${{ inputs.team }}/members" --jq '.[].login' 2>/dev/null || echo "")
-        
-        # Convert space-separated list to newline-separated and check for exact match
-        # Using grep with fixed string (`-F`) and exact line match (^$ or `-x`) for security
-        author="${{ inputs.author }}"
-        if echo "$team_members" | tr ' ' '\n' | grep -Fxq "$author"; then
-          echo "✓ Author $author is in the ${{ inputs.team }} team"
-          echo "is_team_member=true" >> $GITHUB_OUTPUT
+        # Use the memberships endpoint to get specific membership info
+        if response=$(gh api "/orgs/${{ inputs.organization }}/teams/${{ inputs.team }}/memberships/${{ inputs.author }}" 2>/dev/null); then
+          state=$(echo "$response" | jq -r '.state')
+          
+          if [[ "$state" == "active" ]]; then
+            echo "✓ Author ${{ inputs.author }} is an active member of the ${{ inputs.team }} team"
+            echo "is_active_member=true" >> $GITHUB_OUTPUT
+          elif [[ "$state" == "pending" ]]; then
+            echo "⚠️  Author ${{ inputs.author }} has a pending invitation to the ${{ inputs.team }} team (not active)"
+            echo "is_active_member=false" >> $GITHUB_OUTPUT
+          else
+            echo "✗ Author ${{ inputs.author }} has unexpected membership state: $state"
+            echo "is_active_member=false" >> $GITHUB_OUTPUT
+          fi
         else
-          echo "✗ Author $author is not in the ${{ inputs.team }} team"
-          echo "is_team_member=false" >> $GITHUB_OUTPUT
+          # API call failed (likely 404 - user not in team)
+          echo "✗ Author ${{ inputs.author }} is not a member of the ${{ inputs.team }} team"
+          echo "is_active_member=false" >> $GITHUB_OUTPUT
         fi
