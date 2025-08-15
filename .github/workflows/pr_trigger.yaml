@@ -8,6 +8,9 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.event.number || github.event.pull_request.head.ref }}
   cancel-in-progress: true
 
+env:
+  REGISTRY: quay.io
+
 jobs:
   check-commit-author:
     runs-on: ubuntu-latest
@@ -65,48 +68,57 @@ jobs:
           fetch-depth: 0
           ref: ${{ github.event.pull_request.head.ref }}
           repository: ${{ github.event.pull_request.head.repo.full_name }}
-
-      - name: Create Dockerfile
+      - name: set-short-sha
         run: |
-          cat << 'EOF' > Dockerfile
-          FROM registry.access.redhat.com/ubi8/ubi:latest
-          COPY README.md /app/
-          WORKDIR /app
-          CMD ["cat", "README.md"]
-          EOF
-
-      - name: Build Image with Buildah
+          REF=${{ github.event.pull_request.head.ref }}
+          SHORT_SHA=$(git rev-parse --short=8 $REF)
+          echo "SHORT_SHA: $SHORT_SHA"
+          echo "SHORT_SHA=$SHORT_SHA" >> $GITHUB_ENV
+      
+      - name: Extract metadata (tags, labels) for Docker
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/my-test-organization/test-registry
+          tags: |
+            pr-${{ github.event.number }}
+            pr-${{ github.event.number }}-${{ env.SHORT_SHA }}
+            
+      - name: Build Image with Buildah 
         id: build-image
         uses: redhat-actions/buildah-build@v2
         with:
-          image: test-app
-          tags: |
-            pr-${{ github.event.number }}
-            ${{ github.sha }}
+          tags: ${{ steps.meta.outputs.tags }}
           containerfiles: |
             ./Dockerfile
 
       - name: Save image to tar
         run: |
+          podman images
           mkdir -p artifacts
-          buildah push ${{ steps.build-image.outputs.image }}:pr-${{ github.event.number }} oci-archive:artifacts/image.tar
-          echo "pr-${{ github.event.number }}" > artifacts/tags.txt
-          echo "${{ github.sha }}" >> artifacts/tags.txt
-          echo "${{ steps.build-image.outputs.image }}" > artifacts/image-name.txt
+
+          # Extract the built image tags from the metadata
+          TAGS_LIST="${{ steps.meta.outputs.tags }}"
+
+          # Save all the built images to tar (podman save can handle multiple tags)
+          echo "Saving images with tags:"
+          echo "$TAGS_LIST"
+        
+          podman save $TAGS_LIST -o artifacts/image.tar
+          echo "$TAGS_LIST" > artifacts/tags.txt
+          echo "my-test-organization/test-registry" > artifacts/image-name.txt
+          echo "${{ env.REGISTRY }}" > artifacts/registry.txt
 
       - name: Upload image artifact
         uses: actions/upload-artifact@v4
         with:
-          name: container-image-pr-${{ github.event.number }}-${{ github.sha }}
+          name: container-image-pr-${{ github.event.number }}-${{ env.SHORT_SHA }}
           path: artifacts/
           retention-days: 7
 
-      - name: print_event
+      - name: print_github_stuff
         run: |
-          echo "${{ toJson(github.event) }}"
-      - name: print_github
-        run: |
-          echo "${{ toJson(github) }}"
+          echo '${{ toJson(github) }}' | jq .
 
       - name: Finish
         run: |
