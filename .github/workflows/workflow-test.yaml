@@ -17,12 +17,14 @@ jobs:
 
       - name: Create test directory structure
         run: |
+          set -x 
           mkdir -p ./test-cache/docker-test
           echo "Initial host file" > ./test-cache/docker-test/host-file.txt
           ls -la ./test-cache/
 
       - name: Test Docker volume mounting
         run: |
+          set -x 
           echo "=== Testing Docker Volume Mounting ==="
           
           # Run container that creates files in mounted volume
@@ -53,6 +55,7 @@ jobs:
 
       - name: Verify Docker volume persistence
         run: |
+          set -x 
           echo "=== Verifying Docker volume persistence on host ==="
           ls -la ./test-cache/
           
@@ -93,6 +96,7 @@ jobs:
 
       - name: Test Podman volume mounting
         run: |
+          set -x 
           echo "=== Testing Podman Volume Mounting ==="
           
           # Run container that creates files in mounted volume
@@ -123,6 +127,7 @@ jobs:
 
       - name: Verify Podman volume persistence
         run: |
+          set -x 
           echo "=== Verifying Podman volume persistence on host ==="
           ls -la ./test-cache/
           
@@ -143,91 +148,6 @@ jobs:
           echo "=== Host ownership ==="
           ls -ln ./test-cache/podman-created/ || echo "Directory not accessible"
 
-  test-hermeto-simulation:
-    runs-on: ubuntu-latest
-    name: Simulate Hermeto Cache Scenario
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Install Podman
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y podman
-
-      - name: Test Hermeto-like scenario with Docker
-        run: |
-          echo "=== Testing Hermeto-like scenario with Docker ==="
-          
-          # Simulate your exact hermeto-cache scenario
-          LOCAL_CACHE_DIR="./hermeto-cache/$(basename .)"
-          mkdir -p "$LOCAL_CACHE_DIR"
-          
-          echo "Cache directory: $LOCAL_CACHE_DIR"
-          echo "Absolute path: $(realpath "$LOCAL_CACHE_DIR")"
-          
-          # Run docker command similar to your hermeto setup
-          docker run --rm \
-            -v "$PWD:/source:z" \
-            -v "$LOCAL_CACHE_DIR:/cachi2:z" \
-            -w /source \
-            alpine:latest sh -c '
-              echo "=== Inside Docker container (hermeto simulation) ==="
-              mkdir -p /cachi2/output/deps
-              echo "Simulated hermeto output" > /cachi2/output/deps/test.txt
-              echo "Environment data" > /cachi2/cachi2.env
-              
-              ls -la /cachi2/
-              ls -la /cachi2/output/
-            '
-          
-          echo "=== After Docker run ==="
-          ls -la "$LOCAL_CACHE_DIR" || echo "Cache directory not found"
-          ls -la "$LOCAL_CACHE_DIR/output" || echo "Output directory not found"
-
-      - name: Test Hermeto-like scenario with Podman
-        run: |
-          echo "=== Testing Hermeto-like scenario with Podman ==="
-          
-          # Simulate your exact hermeto-cache scenario
-          LOCAL_CACHE_DIR="./hermeto-cache/$(basename .)"
-          mkdir -p "$LOCAL_CACHE_DIR"
-          
-          echo "Cache directory: $LOCAL_CACHE_DIR"
-          echo "Absolute path: $(realpath "$LOCAL_CACHE_DIR")"
-          
-          # Run podman command similar to your hermeto setup
-          podman run --rm \
-            -v "$PWD:/source:z" \
-            -v "$LOCAL_CACHE_DIR:/cachi2:z" \
-            -w /source \
-            alpine:latest sh -c '
-              echo "=== Inside Podman container (hermeto simulation) ==="
-              mkdir -p /cachi2/output/deps
-              echo "Simulated hermeto output" > /cachi2/output/deps/test.txt
-              echo "Environment data" > /cachi2/cachi2.env
-              
-              ls -la /cachi2/
-              ls -la /cachi2/output/
-            '
-          
-          echo "=== After Podman run ==="
-          ls -la "$LOCAL_CACHE_DIR" || echo "Cache directory not found"
-          ls -la "$LOCAL_CACHE_DIR/output" || echo "Output directory not found"
-          
-          # Test ownership fix like in your action
-          if [ -d "$LOCAL_CACHE_DIR" ]; then
-            echo "=== Testing ownership fix ==="
-            LOCAL_CACHE_DIR_REALPATH=$(realpath "$LOCAL_CACHE_DIR")
-            echo "Before ownership fix:"
-            ls -ln "$LOCAL_CACHE_DIR_REALPATH" || echo "Cannot list directory"
-            
-            echo "Attempting to fix ownership..."
-            sudo chown -R runner "$LOCAL_CACHE_DIR_REALPATH" || echo "Ownership fix failed"
-            
-            echo "After ownership fix:"
-            ls -ln "$LOCAL_CACHE_DIR_REALPATH" || echo "Cannot list directory"
-          fi
 
   test-permissions-and-selinux:
     runs-on: ubuntu-latest
@@ -243,12 +163,14 @@ jobs:
 
       - name: Check SELinux status
         run: |
+          set -x 
           echo "=== SELinux Status ==="
           sestatus || echo "SELinux not available"
           getenforce || echo "SELinux not enforcing"
 
       - name: Test different volume mount options
         run: |
+          set -x 
           echo "=== Testing different volume mount options ==="
           
           mkdir -p ./test-volumes
@@ -279,6 +201,7 @@ jobs:
 
       - name: Compare Docker vs Podman with same volume options
         run: |
+          set -x 
           echo "=== Comparing Docker vs Podman ==="
           
           mkdir -p ./comparison-test
@@ -299,3 +222,188 @@ jobs:
           ls -la ./comparison-test/
           echo "Docker file content:" && cat ./comparison-test/docker-created.txt || echo "Docker file not found"
           echo "Podman file content:" && cat ./comparison-test/podman-created.txt || echo "Podman file not found"
+
+  test-nonexistent-directory-mounting:
+    runs-on: ubuntu-latest
+    name: Test Mounting Non-Existent Directories
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Podman
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y podman
+
+      - name: Test Docker with non-existent directory
+        run: |
+          set -x 
+          echo "=== Testing Docker with non-existent directory ==="
+          
+          # Ensure the directory doesn't exist
+          rm -rf ./nonexistent-docker-test
+          
+          echo "--- Before Docker run ---"
+          ls -la . | grep nonexistent || echo "No nonexistent directories found (expected)"
+          
+          # Try to mount a non-existent directory
+          echo "--- Running Docker with non-existent mount point ---"
+          docker run --rm \
+            -v "$PWD/nonexistent-docker-test:/test-mount:z" \
+            alpine:latest sh -c '
+              echo "=== Inside Docker container ==="
+              ls -la /
+              echo "Mount point /test-mount:"
+              ls -la /test-mount/ || echo "Mount point not accessible"
+              
+              echo "Attempting to create files in mount point..."
+              mkdir -p /test-mount/created-in-container
+              echo "Docker created this file" > /test-mount/created-in-container/test.txt
+              echo "Files created:"
+              ls -la /test-mount/
+              ls -la /test-mount/created-in-container/ || echo "Subdir not accessible"
+            ' || echo "Docker run failed"
+          
+          echo "--- After Docker run ---"
+          if [ -d "./nonexistent-docker-test" ]; then
+            echo "✅ Docker created the non-existent directory on host"
+            ls -la ./nonexistent-docker-test/
+            if [ -f "./nonexistent-docker-test/created-in-container/test.txt" ]; then
+              echo "✅ Files created in container are accessible on host"
+              cat ./nonexistent-docker-test/created-in-container/test.txt
+            else
+              echo "❌ Files created in container are NOT accessible on host"
+            fi
+          else
+            echo "❌ Docker did NOT create the non-existent directory on host"
+          fi
+
+      - name: Test Podman with non-existent directory
+        run: |
+          set -x 
+          echo "=== Testing Podman with non-existent directory ==="
+          
+          # Ensure the directory doesn't exist
+          rm -rf ./nonexistent-podman-test
+          
+          echo "--- Before Podman run ---"
+          ls -la . | grep nonexistent || echo "No nonexistent directories found (expected)"
+          
+          # Try to mount a non-existent directory
+          echo "--- Running Podman with non-existent mount point ---"
+          podman run --rm \
+            -v "$PWD/nonexistent-podman-test:/test-mount:z" \
+            alpine:latest sh -c '
+              echo "=== Inside Podman container ==="
+              ls -la /
+              echo "Mount point /test-mount:"
+              ls -la /test-mount/ || echo "Mount point not accessible"
+              
+              echo "Attempting to create files in mount point..."
+              mkdir -p /test-mount/created-in-container
+              echo "Podman created this file" > /test-mount/created-in-container/test.txt
+              echo "Files created:"
+              ls -la /test-mount/
+              ls -la /test-mount/created-in-container/ || echo "Subdir not accessible"
+            ' || echo "Podman run failed"
+          
+          echo "--- After Podman run ---"
+          if [ -d "./nonexistent-podman-test" ]; then
+            echo "✅ Podman created the non-existent directory on host"
+            ls -la ./nonexistent-podman-test/
+            if [ -f "./nonexistent-podman-test/created-in-container/test.txt" ]; then
+              echo "✅ Files created in container are accessible on host"
+              cat ./nonexistent-podman-test/created-in-container/test.txt
+            else
+              echo "❌ Files created in container are NOT accessible on host"
+            fi
+          else
+            echo "❌ Podman did NOT create the non-existent directory on host"
+          fi
+
+      - name: Test nested non-existent path mounting
+        run: |
+          set -x 
+          echo "=== Testing nested non-existent path mounting ==="
+          
+          # Clean up any existing directories
+          rm -rf ./deeply/nested/nonexistent
+          
+          echo "--- Testing Docker with deeply nested non-existent path ---"
+          docker run --rm \
+            -v "$PWD/deeply/nested/nonexistent:/deep-mount:z" \
+            alpine:latest sh -c '
+              echo "=== Inside Docker container (nested test) ==="
+              ls -la /deep-mount/ || echo "Deep mount not accessible"
+              echo "Creating file in deep mount..."
+              echo "Docker deep nested file" > /deep-mount/deep-test.txt
+              ls -la /deep-mount/
+            ' || echo "Docker deep nested run failed"
+          
+          echo "--- After Docker deep nested run ---"
+          if [ -f "./deeply/nested/nonexistent/deep-test.txt" ]; then
+            echo "✅ Docker created deeply nested directory structure"
+            echo "Directory structure:"
+            find ./deeply -type d
+            echo "File content:"
+            cat ./deeply/nested/nonexistent/deep-test.txt
+          else
+            echo "❌ Docker did NOT create deeply nested directory structure"
+          fi
+          
+          echo "--- Testing Podman with deeply nested non-existent path ---"
+          podman run --rm \
+            -v "$PWD/deeply/nested/nonexistent:/deep-mount:z" \
+            alpine:latest sh -c '
+              echo "=== Inside Podman container (nested test) ==="
+              ls -la /deep-mount/ || echo "Deep mount not accessible"
+              echo "Creating file in deep mount..."
+              echo "Podman deep nested file" > /deep-mount/deep-test-podman.txt
+              ls -la /deep-mount/
+            ' || echo "Podman deep nested run failed"
+          
+          echo "--- After Podman deep nested run ---"
+          if [ -f "./deeply/nested/nonexistent/deep-test-podman.txt" ]; then
+            echo "✅ Podman handled deeply nested directory structure"
+            echo "Files in nested directory:"
+            ls -la ./deeply/nested/nonexistent/
+          else
+            echo "❌ Podman did NOT handle deeply nested directory structure correctly"
+          fi
+
+      - name: Test mounting non-existent directory with specific permissions
+        run: |
+          set -x 
+          echo "=== Testing non-existent directory with permission operations ==="
+          
+          rm -rf ./permission-test-dir
+          
+          echo "--- Testing permission setting in non-existent mounted directory ---"
+          docker run --rm \
+            -v "$PWD/permission-test-dir:/perm-test:z" \
+            alpine:latest sh -c '
+              echo "=== Setting permissions in mounted non-existent dir ==="
+              mkdir -p /perm-test/subdir
+              echo "Permission test file" > /perm-test/subdir/file.txt
+              
+              # Try to set specific permissions
+              chmod 755 /perm-test/subdir
+              chmod 644 /perm-test/subdir/file.txt
+              
+              echo "Permissions inside container:"
+              ls -la /perm-test/
+              ls -la /perm-test/subdir/
+            '
+          
+          echo "--- Checking permissions on host ---"
+          if [ -d "./permission-test-dir" ]; then
+            echo "✅ Permission test directory created"
+            echo "Host permissions:"
+            ls -la ./permission-test-dir/
+            ls -la ./permission-test-dir/subdir/ || echo "Subdir not accessible"
+            
+            echo "Numeric permissions:"
+            stat -c "%a %n" ./permission-test-dir/subdir/* || echo "Cannot stat files"
+          else
+            echo "❌ Permission test directory NOT created"
+          fi
