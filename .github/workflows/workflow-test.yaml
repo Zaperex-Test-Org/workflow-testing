@@ -431,12 +431,30 @@ jobs:
               find /existing-mount -type f -exec echo "FOUND: {}" \; -exec head -n1 {} \;
               
               echo "Creating new content alongside existing files..."
-              mkdir -p /existing-mount/docker-added/subdir
-              echo "Docker added this file" > /existing-mount/docker-added/new-file.txt
-              echo "Docker nested file" > /existing-mount/docker-added/subdir/nested.txt
+              # Create deeply nested Docker structure with simple names
+              mkdir -p /existing-mount/docker-added/layer1/layer2/layer3/layer4/layer5/layer6
+              mkdir -p /existing-mount/docker-added/path1/path2/path3/path4/path5
+              mkdir -p /existing-mount/docker-added/deep1/deep2/deep3/deep4/deep5/deep6/deep7
               
-              # Add content to existing directory
+              # Add files at various nesting levels
+              echo "Docker root file" > /existing-mount/docker-added/root.txt
+              echo "Docker layer1 file" > /existing-mount/docker-added/layer1/file1.txt
+              echo "Docker layer2 file" > /existing-mount/docker-added/layer1/layer2/file2.txt
+              echo "Docker layer3 file" > /existing-mount/docker-added/layer1/layer2/layer3/file3.txt
+              echo "Docker layer4 file" > /existing-mount/docker-added/layer1/layer2/layer3/layer4/file4.txt
+              echo "Docker layer5 file" > /existing-mount/docker-added/layer1/layer2/layer3/layer4/layer5/file5.txt
+              echo "Docker layer6 file" > /existing-mount/docker-added/layer1/layer2/layer3/layer4/layer5/layer6/file6.txt
+              echo "Docker path3 file" > /existing-mount/docker-added/path1/path2/path3/pathfile.txt
+              echo "Docker path5 file" > /existing-mount/docker-added/path1/path2/path3/path4/path5/deep-path.txt
+              echo "Docker deep7 file" > /existing-mount/docker-added/deep1/deep2/deep3/deep4/deep5/deep6/deep7/deepest.txt
+              
+              # Add content to existing deep directories
               echo "Docker addition to initial content" > /existing-mount/initial-content/docker-addition.txt
+              echo "Docker deep addition" > /existing-mount/initial-content/level1/level2/level3/docker-deep.txt
+              echo "Docker config addition" > /existing-mount/existing-config/app/docker-component.js
+              echo "Docker new component" > /existing-mount/existing-config/app/components/docker-widget.js
+              echo "Docker cache addition" > /existing-mount/existing-data/cache/docker-cache.json
+              echo "Docker temp addition" > /existing-mount/existing-data/cache/temp/docker-session.tmp
               
               # Create file at root level
               echo "Docker root level addition" > /existing-mount/docker-root-addition.txt
@@ -457,11 +475,33 @@ jobs:
             echo "❌ Docker did NOT create new content in existing directory"
           fi
           
+          # Test deeply nested Docker content
+          if [ -f "./existing-mount-test/docker-added/layer1/layer2/layer3/layer4/layer5/layer6/file6.txt" ]; then
+            echo "✅ Docker created deeply nested structure (6 levels)"
+            echo "Layer6 file content: $(cat ./existing-mount-test/docker-added/layer1/layer2/layer3/layer4/layer5/layer6/file6.txt)"
+          else
+            echo "❌ Docker did NOT create deeply nested structure"
+          fi
+          
+          if [ -f "./existing-mount-test/docker-added/deep1/deep2/deep3/deep4/deep5/deep6/deep7/deepest.txt" ]; then
+            echo "✅ Docker created extremely deep structure (7 levels)"
+            echo "Deepest file content: $(cat ./existing-mount-test/docker-added/deep1/deep2/deep3/deep4/deep5/deep6/deep7/deepest.txt)"
+          else
+            echo "❌ Docker did NOT create extremely deep structure"
+          fi
+          
           if [ -f "./existing-mount-test/initial-content/docker-addition.txt" ]; then
             echo "✅ Docker added content to existing subdirectory"
             cat ./existing-mount-test/initial-content/docker-addition.txt
           else
             echo "❌ Docker did NOT add content to existing subdirectory"
+          fi
+          
+          if [ -f "./existing-mount-test/initial-content/level1/level2/level3/docker-deep.txt" ]; then
+            echo "✅ Docker added content to deeply nested existing directory"
+            cat ./existing-mount-test/initial-content/level1/level2/level3/docker-deep.txt
+          else
+            echo "❌ Docker did NOT add content to deeply nested existing directory"
           fi
           
           echo "--- Testing Podman with same existing directory ---"
@@ -473,12 +513,35 @@ jobs:
               find /existing-mount -type f -exec echo "FOUND: {}" \; -exec head -n1 {} \;
               
               echo "Creating new content alongside existing files..."
-              mkdir -p /existing-mount/podman-added/subdir
-              echo "Podman added this file" > /existing-mount/podman-added/new-file.txt
-              echo "Podman nested file" > /existing-mount/podman-added/subdir/nested.txt
+              # Create deeply nested Podman structure with simple names
+              mkdir -p /existing-mount/podman-added/levelA/levelB/levelC/levelD/levelE/levelF/levelG
+              mkdir -p /existing-mount/podman-added/dirA/dirB/dirC/dirD/dirE/dirF
+              mkdir -p /existing-mount/podman-added/nestA/nestB/nestC/nestD/nestE/nestF/nestG/nestH
               
-              # Add content to existing directory (including Docker additions)
+              # Add files at various nesting levels
+              echo "Podman root file" > /existing-mount/podman-added/root.txt
+              echo "Podman levelA file" > /existing-mount/podman-added/levelA/fileA.txt
+              echo "Podman levelB file" > /existing-mount/podman-added/levelA/levelB/fileB.txt
+              echo "Podman levelC file" > /existing-mount/podman-added/levelA/levelB/levelC/fileC.txt
+              echo "Podman levelD file" > /existing-mount/podman-added/levelA/levelB/levelC/levelD/fileD.txt
+              echo "Podman levelE file" > /existing-mount/podman-added/levelA/levelB/levelC/levelD/levelE/fileE.txt
+              echo "Podman levelF file" > /existing-mount/podman-added/levelA/levelB/levelC/levelD/levelE/levelF/fileF.txt
+              echo "Podman levelG file" > /existing-mount/podman-added/levelA/levelB/levelC/levelD/levelE/levelF/levelG/fileG.txt
+              echo "Podman dirC file" > /existing-mount/podman-added/dirA/dirB/dirC/dirfile.txt
+              echo "Podman dirF file" > /existing-mount/podman-added/dirA/dirB/dirC/dirD/dirE/dirF/deep-dir.txt
+              echo "Podman nestH file" > /existing-mount/podman-added/nestA/nestB/nestC/nestD/nestE/nestF/nestG/nestH/deepest.txt
+              
+              # Add content to existing deep directories (including Docker additions)
               echo "Podman addition to initial content" > /existing-mount/initial-content/podman-addition.txt
+              echo "Podman deep addition" > /existing-mount/initial-content/level1/level2/level3/podman-deep.txt
+              echo "Podman config addition" > /existing-mount/existing-config/app/podman-component.js
+              echo "Podman new component" > /existing-mount/existing-config/app/components/podman-widget.js
+              echo "Podman cache addition" > /existing-mount/existing-data/cache/podman-cache.json
+              echo "Podman temp addition" > /existing-mount/existing-data/cache/temp/podman-session.tmp
+              
+              # Also add to Docker created directories to test cross-container interaction
+              echo "Podman addition to Docker layer1" > /existing-mount/docker-added/layer1/podman-addition.txt || echo "Could not write to Docker directory"
+              echo "Podman addition to Docker deep7" > /existing-mount/docker-added/deep1/deep2/deep3/deep4/deep5/deep6/deep7/podman-deep.txt || echo "Could not write to Docker deep directory"
               
               # Create file at root level
               echo "Podman root level addition" > /existing-mount/podman-root-addition.txt
@@ -499,6 +562,36 @@ jobs:
             echo "❌ Podman did NOT create new content in existing directory"
           fi
           
+          # Test deeply nested Podman content
+          if [ -f "./existing-mount-test/podman-added/levelA/levelB/levelC/levelD/levelE/levelF/levelG/fileG.txt" ]; then
+            echo "✅ Podman created deeply nested structure (7 levels)"
+            echo "LevelG file content: $(cat ./existing-mount-test/podman-added/levelA/levelB/levelC/levelD/levelE/levelF/levelG/fileG.txt)"
+          else
+            echo "❌ Podman did NOT create deeply nested structure"
+          fi
+          
+          if [ -f "./existing-mount-test/podman-added/nestA/nestB/nestC/nestD/nestE/nestF/nestG/nestH/deepest.txt" ]; then
+            echo "✅ Podman created extremely deep structure (8 levels)"
+            echo "Deepest nest content: $(cat ./existing-mount-test/podman-added/nestA/nestB/nestC/nestD/nestE/nestF/nestG/nestH/deepest.txt)"
+          else
+            echo "❌ Podman did NOT create extremely deep structure"
+          fi
+          
+          # Test cross-container interaction
+          if [ -f "./existing-mount-test/docker-added/layer1/podman-addition.txt" ]; then
+            echo "✅ Podman successfully wrote to Docker-created directory"
+            echo "Cross-container file content: $(cat ./existing-mount-test/docker-added/layer1/podman-addition.txt)"
+          else
+            echo "❌ Podman could NOT write to Docker-created directory"
+          fi
+          
+          if [ -f "./existing-mount-test/docker-added/deep1/deep2/deep3/deep4/deep5/deep6/deep7/podman-deep.txt" ]; then
+            echo "✅ Podman wrote to Docker's deepest directory"
+            echo "Deep cross-container content: $(cat ./existing-mount-test/docker-added/deep1/deep2/deep3/deep4/deep5/deep6/deep7/podman-deep.txt)"
+          else
+            echo "❌ Podman could NOT write to Docker's deepest directory"
+          fi
+          
           echo "Content summary:"
           echo "Original host files:"
           ls -la ./existing-mount-test/*.txt 2>/dev/null || echo "No root level host files found"
@@ -508,6 +601,22 @@ jobs:
           ls -la ./existing-mount-test/podman-* 2>/dev/null || echo "No Podman additions found"
           echo "Mixed content in initial-content directory:"
           ls -la ./existing-mount-test/initial-content/ 2>/dev/null || echo "Initial content directory not accessible"
+          
+          echo "=== Deep Structure Analysis ==="
+          echo "Docker deepest structure depth:"
+          find ./existing-mount-test/docker-added -type f -exec dirname {} \; | awk -F/ '{print NF-1}' | sort -n | tail -1 || echo "No Docker structure found"
+          echo "Podman deepest structure depth:"
+          find ./existing-mount-test/podman-added -type f -exec dirname {} \; | awk -F/ '{print NF-1}' | sort -n | tail -1 || echo "No Podman structure found"
+          
+          echo "Total files created by Docker:"
+          find ./existing-mount-test/docker-added -type f | wc -l || echo "0"
+          echo "Total files created by Podman:"
+          find ./existing-mount-test/podman-added -type f | wc -l || echo "0"
+          
+          echo "Docker directory structure sample:"
+          find ./existing-mount-test/docker-added -type d | head -5 || echo "No Docker directories"
+          echo "Podman directory structure sample:"
+          find ./existing-mount-test/podman-added -type d | head -5 || echo "No Podman directories"
 
       - name: Test ownership and permissions in existing mounted directory
         run: |
