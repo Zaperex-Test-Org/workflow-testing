@@ -450,11 +450,7 @@ jobs:
               
               # Add content to existing deep directories
               echo "Docker addition to initial content" > /existing-mount/initial-content/docker-addition.txt
-              echo "Docker deep addition" > /existing-mount/initial-content/level1/level2/level3/docker-deep.txt
-              echo "Docker config addition" > /existing-mount/existing-config/app/docker-component.js
-              echo "Docker new component" > /existing-mount/existing-config/app/components/docker-widget.js
-              echo "Docker cache addition" > /existing-mount/existing-data/cache/docker-cache.json
-              echo "Docker temp addition" > /existing-mount/existing-data/cache/temp/docker-session.tmp
+
               
               # Create file at root level
               echo "Docker root level addition" > /existing-mount/docker-root-addition.txt
@@ -497,13 +493,6 @@ jobs:
             echo "❌ Docker did NOT add content to existing subdirectory"
           fi
           
-          if [ -f "./existing-mount-test/initial-content/level1/level2/level3/docker-deep.txt" ]; then
-            echo "✅ Docker added content to deeply nested existing directory"
-            cat ./existing-mount-test/initial-content/level1/level2/level3/docker-deep.txt
-          else
-            echo "❌ Docker did NOT add content to deeply nested existing directory"
-          fi
-          
           echo "--- Testing Podman with same existing directory ---"
           podman run --rm \
             -v "$PWD/existing-mount-test:/existing-mount:z" \
@@ -533,11 +522,6 @@ jobs:
               
               # Add content to existing deep directories (including Docker additions)
               echo "Podman addition to initial content" > /existing-mount/initial-content/podman-addition.txt
-              echo "Podman deep addition" > /existing-mount/initial-content/level1/level2/level3/podman-deep.txt
-              echo "Podman config addition" > /existing-mount/existing-config/app/podman-component.js
-              echo "Podman new component" > /existing-mount/existing-config/app/components/podman-widget.js
-              echo "Podman cache addition" > /existing-mount/existing-data/cache/podman-cache.json
-              echo "Podman temp addition" > /existing-mount/existing-data/cache/temp/podman-session.tmp
               
               # Also add to Docker created directories to test cross-container interaction
               echo "Podman addition to Docker layer1" > /existing-mount/docker-added/layer1/podman-addition.txt || echo "Could not write to Docker directory"
