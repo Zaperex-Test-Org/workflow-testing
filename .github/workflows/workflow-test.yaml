@@ -1,0 +1,301 @@
+name: Test Volume Mounting - Docker vs Podman
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test-docker-volumes:
+    runs-on: ubuntu-latest
+    name: Test Docker Volume Mounting
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Create test directory structure
+        run: |
+          mkdir -p ./test-cache/docker-test
+          echo "Initial host file" > ./test-cache/docker-test/host-file.txt
+          ls -la ./test-cache/
+
+      - name: Test Docker volume mounting
+        run: |
+          echo "=== Testing Docker Volume Mounting ==="
+          
+          # Run container that creates files in mounted volume
+          docker run --rm \
+            -v "$PWD/test-cache:/mounted-cache:z" \
+            -w /mounted-cache \
+            alpine:latest sh -c '
+              echo "=== Inside Docker container ==="
+              ls -la /mounted-cache/
+              
+              # Create files and directories
+              mkdir -p /mounted-cache/docker-created/subdir
+              echo "Created by Docker container" > /mounted-cache/docker-created/container-file.txt
+              echo "Another file" > /mounted-cache/docker-created/subdir/nested-file.txt
+              
+              # Set permissions
+              chmod 755 /mounted-cache/docker-created
+              chmod 644 /mounted-cache/docker-created/container-file.txt
+              
+              echo "=== Files created in container ==="
+              ls -la /mounted-cache/
+              ls -la /mounted-cache/docker-created/
+              
+              # Show ownership
+              echo "=== Ownership inside container ==="
+              ls -ln /mounted-cache/docker-created/
+            '
+
+      - name: Verify Docker volume persistence
+        run: |
+          echo "=== Verifying Docker volume persistence on host ==="
+          ls -la ./test-cache/
+          
+          if [ -d "./test-cache/docker-created" ]; then
+            echo "✅ Docker-created directory exists on host"
+            ls -la ./test-cache/docker-created/
+            
+            if [ -f "./test-cache/docker-created/container-file.txt" ]; then
+              echo "✅ Docker-created file exists on host"
+              cat ./test-cache/docker-created/container-file.txt
+            else
+              echo "❌ Docker-created file NOT found on host"
+            fi
+          else
+            echo "❌ Docker-created directory NOT found on host"
+          fi
+          
+          echo "=== Host ownership ==="
+          ls -ln ./test-cache/docker-created/ || echo "Directory not accessible"
+
+  test-podman-volumes:
+    runs-on: ubuntu-latest
+    name: Test Podman Volume Mounting
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Podman
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y podman
+
+      - name: Create test directory structure
+        run: |
+          mkdir -p ./test-cache/podman-test
+          echo "Initial host file" > ./test-cache/podman-test/host-file.txt
+          ls -la ./test-cache/
+
+      - name: Test Podman volume mounting
+        run: |
+          echo "=== Testing Podman Volume Mounting ==="
+          
+          # Run container that creates files in mounted volume
+          podman run --rm \
+            -v "$PWD/test-cache:/mounted-cache:z" \
+            -w /mounted-cache \
+            alpine:latest sh -c '
+              echo "=== Inside Podman container ==="
+              ls -la /mounted-cache/
+              
+              # Create files and directories
+              mkdir -p /mounted-cache/podman-created/subdir
+              echo "Created by Podman container" > /mounted-cache/podman-created/container-file.txt
+              echo "Another file" > /mounted-cache/podman-created/subdir/nested-file.txt
+              
+              # Set permissions
+              chmod 755 /mounted-cache/podman-created
+              chmod 644 /mounted-cache/podman-created/container-file.txt
+              
+              echo "=== Files created in container ==="
+              ls -la /mounted-cache/
+              ls -la /mounted-cache/podman-created/
+              
+              # Show ownership
+              echo "=== Ownership inside container ==="
+              ls -ln /mounted-cache/podman-created/
+            '
+
+      - name: Verify Podman volume persistence
+        run: |
+          echo "=== Verifying Podman volume persistence on host ==="
+          ls -la ./test-cache/
+          
+          if [ -d "./test-cache/podman-created" ]; then
+            echo "✅ Podman-created directory exists on host"
+            ls -la ./test-cache/podman-created/
+            
+            if [ -f "./test-cache/podman-created/container-file.txt" ]; then
+              echo "✅ Podman-created file exists on host"
+              cat ./test-cache/podman-created/container-file.txt
+            else
+              echo "❌ Podman-created file NOT found on host"
+            fi
+          else
+            echo "❌ Podman-created directory NOT found on host"
+          fi
+          
+          echo "=== Host ownership ==="
+          ls -ln ./test-cache/podman-created/ || echo "Directory not accessible"
+
+  test-hermeto-simulation:
+    runs-on: ubuntu-latest
+    name: Simulate Hermeto Cache Scenario
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Podman
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y podman
+
+      - name: Test Hermeto-like scenario with Docker
+        run: |
+          echo "=== Testing Hermeto-like scenario with Docker ==="
+          
+          # Simulate your exact hermeto-cache scenario
+          LOCAL_CACHE_DIR="./hermeto-cache/$(basename .)"
+          mkdir -p "$LOCAL_CACHE_DIR"
+          
+          echo "Cache directory: $LOCAL_CACHE_DIR"
+          echo "Absolute path: $(realpath "$LOCAL_CACHE_DIR")"
+          
+          # Run docker command similar to your hermeto setup
+          docker run --rm \
+            -v "$PWD:/source:z" \
+            -v "$LOCAL_CACHE_DIR:/cachi2:z" \
+            -w /source \
+            alpine:latest sh -c '
+              echo "=== Inside Docker container (hermeto simulation) ==="
+              mkdir -p /cachi2/output/deps
+              echo "Simulated hermeto output" > /cachi2/output/deps/test.txt
+              echo "Environment data" > /cachi2/cachi2.env
+              
+              ls -la /cachi2/
+              ls -la /cachi2/output/
+            '
+          
+          echo "=== After Docker run ==="
+          ls -la "$LOCAL_CACHE_DIR" || echo "Cache directory not found"
+          ls -la "$LOCAL_CACHE_DIR/output" || echo "Output directory not found"
+
+      - name: Test Hermeto-like scenario with Podman
+        run: |
+          echo "=== Testing Hermeto-like scenario with Podman ==="
+          
+          # Simulate your exact hermeto-cache scenario
+          LOCAL_CACHE_DIR="./hermeto-cache/$(basename .)"
+          mkdir -p "$LOCAL_CACHE_DIR"
+          
+          echo "Cache directory: $LOCAL_CACHE_DIR"
+          echo "Absolute path: $(realpath "$LOCAL_CACHE_DIR")"
+          
+          # Run podman command similar to your hermeto setup
+          podman run --rm \
+            -v "$PWD:/source:z" \
+            -v "$LOCAL_CACHE_DIR:/cachi2:z" \
+            -w /source \
+            alpine:latest sh -c '
+              echo "=== Inside Podman container (hermeto simulation) ==="
+              mkdir -p /cachi2/output/deps
+              echo "Simulated hermeto output" > /cachi2/output/deps/test.txt
+              echo "Environment data" > /cachi2/cachi2.env
+              
+              ls -la /cachi2/
+              ls -la /cachi2/output/
+            '
+          
+          echo "=== After Podman run ==="
+          ls -la "$LOCAL_CACHE_DIR" || echo "Cache directory not found"
+          ls -la "$LOCAL_CACHE_DIR/output" || echo "Output directory not found"
+          
+          # Test ownership fix like in your action
+          if [ -d "$LOCAL_CACHE_DIR" ]; then
+            echo "=== Testing ownership fix ==="
+            LOCAL_CACHE_DIR_REALPATH=$(realpath "$LOCAL_CACHE_DIR")
+            echo "Before ownership fix:"
+            ls -ln "$LOCAL_CACHE_DIR_REALPATH" || echo "Cannot list directory"
+            
+            echo "Attempting to fix ownership..."
+            sudo chown -R runner "$LOCAL_CACHE_DIR_REALPATH" || echo "Ownership fix failed"
+            
+            echo "After ownership fix:"
+            ls -ln "$LOCAL_CACHE_DIR_REALPATH" || echo "Cannot list directory"
+          fi
+
+  test-permissions-and-selinux:
+    runs-on: ubuntu-latest
+    name: Test Permissions and SELinux Context
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Podman
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y podman
+
+      - name: Check SELinux status
+        run: |
+          echo "=== SELinux Status ==="
+          sestatus || echo "SELinux not available"
+          getenforce || echo "SELinux not enforcing"
+
+      - name: Test different volume mount options
+        run: |
+          echo "=== Testing different volume mount options ==="
+          
+          mkdir -p ./test-volumes
+          
+          # Test without :z
+          echo "--- Without :z flag ---"
+          docker run --rm -v "$PWD/test-volumes:/test" alpine:latest sh -c '
+            mkdir -p /test/no-z
+            echo "no-z test" > /test/no-z/file.txt
+          ' || echo "Docker without :z failed"
+          ls -la ./test-volumes/ || echo "No directory created"
+          
+          # Test with :z
+          echo "--- With :z flag ---"
+          docker run --rm -v "$PWD/test-volumes:/test:z" alpine:latest sh -c '
+            mkdir -p /test/with-z
+            echo "with-z test" > /test/with-z/file.txt
+          ' || echo "Docker with :z failed"
+          ls -la ./test-volumes/ || echo "No directory created"
+          
+          # Test with :Z
+          echo "--- With :Z flag ---"
+          docker run --rm -v "$PWD/test-volumes:/test:Z" alpine:latest sh -c '
+            mkdir -p /test/with-Z
+            echo "with-Z test" > /test/with-Z/file.txt
+          ' || echo "Docker with :Z failed"
+          ls -la ./test-volumes/ || echo "No directory created"
+
+      - name: Compare Docker vs Podman with same volume options
+        run: |
+          echo "=== Comparing Docker vs Podman ==="
+          
+          mkdir -p ./comparison-test
+          
+          echo "--- Docker test ---"
+          docker run --rm -v "$PWD/comparison-test:/test:z" alpine:latest sh -c '
+            echo "docker-test" > /test/docker-created.txt
+            ls -la /test/
+          '
+          
+          echo "--- Podman test ---"
+          podman run --rm -v "$PWD/comparison-test:/test:z" alpine:latest sh -c '
+            echo "podman-test" > /test/podman-created.txt
+            ls -la /test/
+          '
+          
+          echo "--- Final state on host ---"
+          ls -la ./comparison-test/
+          echo "Docker file content:" && cat ./comparison-test/docker-created.txt || echo "Docker file not found"
+          echo "Podman file content:" && cat ./comparison-test/podman-created.txt || echo "Podman file not found"
