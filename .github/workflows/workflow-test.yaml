@@ -407,3 +407,184 @@ jobs:
           else
             echo "❌ Permission test directory NOT created"
           fi
+
+      - name: Test existing directory with new content creation
+        run: |
+          set -x 
+          echo "=== Testing existing directory with new content creation ==="
+          
+          # Create an existing directory with some initial content
+          mkdir -p ./existing-mount-test/initial-content
+          echo "Pre-existing host file" > ./existing-mount-test/initial-content/host-file.txt
+          echo "Another host file" > ./existing-mount-test/host-root-file.txt
+          
+          echo "--- Initial state of existing directory ---"
+          echo "Directory structure:"
+          find ./existing-mount-test -type f -exec echo "FILE: {}" \; -exec cat {} \;
+          
+          echo "--- Testing Docker with existing directory ---"
+          docker run --rm \
+            -v "$PWD/existing-mount-test:/existing-mount:z" \
+            alpine:latest sh -c '
+              echo "=== Inside Docker container (existing dir test) ==="
+              echo "Current contents of mount:"
+              find /existing-mount -type f -exec echo "FOUND: {}" \; -exec head -n1 {} \;
+              
+              echo "Creating new content alongside existing files..."
+              mkdir -p /existing-mount/docker-added/subdir
+              echo "Docker added this file" > /existing-mount/docker-added/new-file.txt
+              echo "Docker nested file" > /existing-mount/docker-added/subdir/nested.txt
+              
+              # Add content to existing directory
+              echo "Docker addition to initial content" > /existing-mount/initial-content/docker-addition.txt
+              
+              # Create file at root level
+              echo "Docker root level addition" > /existing-mount/docker-root-addition.txt
+              
+              echo "Final state inside container:"
+              find /existing-mount -type f | sort
+            '
+          
+          echo "--- After Docker run on existing directory ---"
+          echo "Complete directory structure:"
+          find ./existing-mount-test -type f | sort
+          
+          echo "Verification of new Docker content:"
+          if [ -f "./existing-mount-test/docker-added/new-file.txt" ]; then
+            echo "✅ Docker created new subdirectory and files"
+            cat ./existing-mount-test/docker-added/new-file.txt
+          else
+            echo "❌ Docker did NOT create new content in existing directory"
+          fi
+          
+          if [ -f "./existing-mount-test/initial-content/docker-addition.txt" ]; then
+            echo "✅ Docker added content to existing subdirectory"
+            cat ./existing-mount-test/initial-content/docker-addition.txt
+          else
+            echo "❌ Docker did NOT add content to existing subdirectory"
+          fi
+          
+          echo "--- Testing Podman with same existing directory ---"
+          podman run --rm \
+            -v "$PWD/existing-mount-test:/existing-mount:z" \
+            alpine:latest sh -c '
+              echo "=== Inside Podman container (existing dir test) ==="
+              echo "Current contents of mount:"
+              find /existing-mount -type f -exec echo "FOUND: {}" \; -exec head -n1 {} \;
+              
+              echo "Creating new content alongside existing files..."
+              mkdir -p /existing-mount/podman-added/subdir
+              echo "Podman added this file" > /existing-mount/podman-added/new-file.txt
+              echo "Podman nested file" > /existing-mount/podman-added/subdir/nested.txt
+              
+              # Add content to existing directory (including Docker additions)
+              echo "Podman addition to initial content" > /existing-mount/initial-content/podman-addition.txt
+              
+              # Create file at root level
+              echo "Podman root level addition" > /existing-mount/podman-root-addition.txt
+              
+              echo "Final state inside container:"
+              find /existing-mount -type f | sort
+            '
+          
+          echo "--- Final state after both Docker and Podman ---"
+          echo "Complete directory structure:"
+          find ./existing-mount-test -type f | sort
+          
+          echo "Verification of Podman content:"
+          if [ -f "./existing-mount-test/podman-added/new-file.txt" ]; then
+            echo "✅ Podman created new subdirectory and files"
+            cat ./existing-mount-test/podman-added/new-file.txt
+          else
+            echo "❌ Podman did NOT create new content in existing directory"
+          fi
+          
+          echo "Content summary:"
+          echo "Original host files:"
+          ls -la ./existing-mount-test/*.txt 2>/dev/null || echo "No root level host files found"
+          echo "Docker additions:"
+          ls -la ./existing-mount-test/docker-* 2>/dev/null || echo "No Docker additions found"
+          echo "Podman additions:"
+          ls -la ./existing-mount-test/podman-* 2>/dev/null || echo "No Podman additions found"
+          echo "Mixed content in initial-content directory:"
+          ls -la ./existing-mount-test/initial-content/ 2>/dev/null || echo "Initial content directory not accessible"
+
+      - name: Test ownership and permissions in existing mounted directory
+        run: |
+          set -x 
+          echo "=== Testing ownership and permissions in existing mounted directory ==="
+          
+          # Create directory with specific ownership and permissions
+          mkdir -p ./ownership-test/existing-subdir
+          echo "Host owned file" > ./ownership-test/host-file.txt
+          chmod 755 ./ownership-test/existing-subdir
+          chmod 644 ./ownership-test/host-file.txt
+          
+          echo "--- Initial ownership and permissions ---"
+          ls -la ./ownership-test/
+          ls -ln ./ownership-test/  # Numeric IDs
+          
+          echo "--- Docker test with existing directory ownership ---"
+          docker run --rm \
+            -v "$PWD/ownership-test:/ownership-mount:z" \
+            alpine:latest sh -c '
+              echo "=== Inside Docker container (ownership test) ==="
+              echo "Container user info:"
+              id
+              
+              echo "Mount point ownership inside container:"
+              ls -ln /ownership-mount/
+              
+              echo "Creating files with container user..."
+              mkdir -p /ownership-mount/docker-created
+              echo "Docker created file" > /ownership-mount/docker-created/container-file.txt
+              
+              echo "Attempting to modify existing file..."
+              echo "Docker modification" >> /ownership-mount/host-file.txt || echo "Could not modify host file"
+              
+              echo "Final permissions inside container:"
+              ls -ln /ownership-mount/
+              ls -ln /ownership-mount/docker-created/ || echo "Docker created dir not accessible"
+            '
+          
+          echo "--- After Docker run - checking host ownership ---"
+          echo "Ownership on host:"
+          ls -ln ./ownership-test/
+          ls -ln ./ownership-test/docker-created/ 2>/dev/null || echo "Docker created directory not found"
+          
+          echo "Content of modified host file:"
+          cat ./ownership-test/host-file.txt || echo "Cannot read host file"
+          
+          echo "--- Podman test with existing directory ownership ---"
+          podman run --rm \
+            -v "$PWD/ownership-test:/ownership-mount:z" \
+            alpine:latest sh -c '
+              echo "=== Inside Podman container (ownership test) ==="
+              echo "Container user info:"
+              id
+              
+              echo "Mount point ownership inside container:"
+              ls -ln /ownership-mount/
+              
+              echo "Creating files with container user..."
+              mkdir -p /ownership-mount/podman-created
+              echo "Podman created file" > /ownership-mount/podman-created/container-file.txt
+              
+              echo "Attempting to modify existing file..."
+              echo "Podman modification" >> /ownership-mount/host-file.txt || echo "Could not modify host file"
+              
+              echo "Final permissions inside container:"
+              ls -ln /ownership-mount/
+              ls -ln /ownership-mount/podman-created/ || echo "Podman created dir not accessible"
+            '
+          
+          echo "--- Final ownership comparison ---"
+          echo "Final ownership on host:"
+          ls -ln ./ownership-test/
+          echo "Docker created content:"
+          ls -ln ./ownership-test/docker-created/ 2>/dev/null || echo "No Docker content"
+          echo "Podman created content:"
+          ls -ln ./ownership-test/podman-created/ 2>/dev/null || echo "No Podman content"
+          
+          echo "Final content of shared file:"
+          cat ./ownership-test/host-file.txt || echo "Cannot read host file"
