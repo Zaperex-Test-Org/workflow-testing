@@ -17,12 +17,6 @@ jobs:
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
-        with:
-          # Use default builder (buildkit)
-          driver: docker-container
-          driver-opts: |
-            network=host
-        id: buildx
 
       - name: Inspect Docker Buildx - Default Builder
         run: |
@@ -36,26 +30,6 @@ jobs:
           echo "=== Current Builder with Bootstrap ==="
           docker buildx inspect --bootstrap
           echo ""
-
-      - name: Get BuildKit Version Details
-        run: |
-          set -x
-          echo "=== BuildKit Version Information ==="
-          
-          # Get the current builder name
-          BUILDER_NAME=$(docker buildx inspect --format '{{.Name}}')
-          echo "Current builder: $BUILDER_NAME"
-          
-          # Get detailed builder information
-          echo "=== Builder Details ==="
-          docker buildx inspect "$BUILDER_NAME" --format '{{json .}}' | jq '.' || docker buildx inspect "$BUILDER_NAME"
-          
-          echo "=== BuildKit Driver Info ==="
-          docker buildx inspect "$BUILDER_NAME" --format '{{.Driver}}'
-          
-          echo "=== BuildKit Node Info ==="
-          docker buildx inspect "$BUILDER_NAME" --format '{{range .Nodes}}Name: {{.Name}}, Endpoint: {{.Endpoint}}, Status: {{.Status}}, BuildKit: {{.Version}}{{end}}'
-
       - name: Test build-push-action@v6 with BuildKit
         uses: docker/build-push-action@v6
         with:
@@ -89,111 +63,4 @@ jobs:
           echo "=== Image Info ==="
           docker image inspect test-buildkit:latest --format '{{json .}}' | jq '.Config.Labels, .Architecture, .Os' || docker image inspect test-buildkit:latest
 
-  test-different-buildx-drivers:
-    runs-on: ubuntu-latest
-    name: Test Different BuildKit Drivers
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
 
-      - name: Test Docker Driver
-        run: |
-          set -x
-          echo "=== Testing Docker Driver ==="
-          docker buildx create --name docker-driver --driver docker --use || docker buildx use docker-driver || echo "Could not create/use docker driver"
-          docker buildx inspect --bootstrap || echo "Docker driver inspection failed"
-          docker buildx ls
-
-      - name: Test Docker-Container Driver
-        run: |
-          set -x
-          echo "=== Testing Docker-Container Driver ==="
-          docker buildx create --name container-driver --driver docker-container --use
-          docker buildx inspect --bootstrap
-          docker buildx ls
-
-      - name: Test with docker-container driver and build-push-action@v6
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          file: ./Dockerfile
-          push: false
-          tags: test-container-driver:latest
-          builder: container-driver
-
-      - name: Compare Driver Capabilities
-        run: |
-          set -x
-          echo "=== Comparing Driver Capabilities ==="
-          
-          echo "--- Available Builders ---"
-          docker buildx ls
-          
-          echo "--- Docker Driver Details (if available) ---"
-          docker buildx inspect docker-driver || echo "Docker driver not available"
-          
-          echo "--- Container Driver Details ---"
-          docker buildx inspect container-driver
-          
-          echo "--- Default Builder Details ---"
-          docker buildx inspect default || echo "Default builder not available"
-
-  test-buildkit-features:
-    runs-on: ubuntu-latest
-    name: Test BuildKit Features and Capabilities
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Set up Docker Buildx with specific BuildKit version
-        uses: docker/setup-buildx-action@v3
-        with:
-          driver: docker-container
-          # You can specify a specific BuildKit version here if needed
-          # buildkitd-flags: --debug
-        id: buildx
-
-      - name: Show BuildKit Capabilities
-        run: |
-          set -x
-          echo "=== BuildKit Feature Detection ==="
-          
-          # Check available platforms
-          echo "--- Supported Platforms ---"
-          docker buildx inspect --format '{{range .Nodes}}{{range .Platforms}}{{.}}, {{end}}{{end}}'
-          
-          # Check driver capabilities
-          echo "--- Driver Capabilities ---"
-          docker buildx inspect --format '{{range .Nodes}}Driver: {{.DriverOpts}}, Features: {{.Features}}{{end}}'
-
-      - name: Test Multi-Platform Build Capabilities
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          file: ./Dockerfile
-          platforms: linux/amd64,linux/arm64
-          push: false
-          tags: test-multiplatform:latest
-
-      - name: Test BuildKit Cache Features
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          file: ./Dockerfile
-          push: false
-          tags: test-cache:latest
-          cache-from: |
-            type=gha
-            type=inline
-          cache-to: type=gha,mode=max
-
-      - name: Final BuildKit Status Summary
-        run: |
-          set -x
-          echo "=== Final BuildKit Summary ==="
-          echo "--- All Builders ---"
-          docker buildx ls
-          echo "--- Current Builder Full Details ---"
-          docker buildx inspect --format '{{json .}}' | jq '.'
-          echo "--- BuildKit Version Summary ---"
-          docker buildx inspect --format 'Builder: {{.Name}}, Driver: {{.Driver}}, Version: {{range .Nodes}}{{.Version}}{{end}}'
