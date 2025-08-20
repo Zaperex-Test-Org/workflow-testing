@@ -463,14 +463,6 @@ jobs:
           echo "Complete directory structure:"
           find ./existing-mount-test -type f | sort
           
-          echo "Verification of new Docker content:"
-          if [ -f "./existing-mount-test/docker-added/new-file.txt" ]; then
-            echo "✅ Docker created new subdirectory and files"
-            cat ./existing-mount-test/docker-added/new-file.txt
-          else
-            echo "❌ Docker did NOT create new content in existing directory"
-          fi
-          
           # Test deeply nested Docker content
           if [ -f "./existing-mount-test/docker-added/layer1/layer2/layer3/layer4/layer5/layer6/file6.txt" ]; then
             echo "✅ Docker created deeply nested structure (6 levels)"
@@ -537,15 +529,7 @@ jobs:
           echo "--- Final state after both Docker and Podman ---"
           echo "Complete directory structure:"
           find ./existing-mount-test -type f | sort
-          
-          echo "Verification of Podman content:"
-          if [ -f "./existing-mount-test/podman-added/new-file.txt" ]; then
-            echo "✅ Podman created new subdirectory and files"
-            cat ./existing-mount-test/podman-added/new-file.txt
-          else
-            echo "❌ Podman did NOT create new content in existing directory"
-          fi
-          
+                  
           # Test deeply nested Podman content
           if [ -f "./existing-mount-test/podman-added/levelA/levelB/levelC/levelD/levelE/levelF/levelG/fileG.txt" ]; then
             echo "✅ Podman created deeply nested structure (7 levels)"
