@@ -60,7 +60,7 @@ jobs:
           echo "Regen rpms.lock.yaml from Dockerfile + rpms.in.yaml using $(which rpm-lockfile-prototype) in [$(pwd)]"
           "${HOME}/.local/bin/rpm-lockfile-prototype" -f .rhdh/docker/Dockerfile rpms.in.yaml
 
-      - name: Check for lockfilechanges
+      - name: Check for lockfile changes
         id: check-lockfile-changes
         run: |
           if git diff --quiet rpms.lock.yaml; then
@@ -97,6 +97,7 @@ jobs:
           branch: update-rpm-lockfile
           delete-branch: true
           draft: false
+          sign-commits: true
           labels: |
             lgtm
             approved
@@ -106,7 +107,7 @@ jobs:
       - name: Summary
         run: |
           if [ "${{ steps.check-lockfile-changes.outputs.changes }}" == "true" ]; then
-            echo "✅ RPM lockfile updated and PR: ${{ steps.create-pull-request.outputs.pull-request-url }} created"
+            echo "✅ RPM lockfile updated and created PR: ${{ steps.create-pull-request.outputs.pull-request-url }}"
           else
             echo "ℹ️ No changes detected in RPM lockfile"
           fi
