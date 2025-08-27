@@ -1,0 +1,14 @@
+name: Container Test
+on:
+  workflow_dispatch:
+
+jobs:
+  test-script:
+    runs-on: ubuntu-latest
+    container:
+      image: quay.io/rhdh/gitlab-runner:yarn3-node22-latest
+    steps:
+      - name: Run help command of rpm-lockfile-prototype
+        shell: bash
+        run: |
+          rpm-lockfile-prototype --help
