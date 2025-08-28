@@ -36,7 +36,6 @@ jobs:
         id: get-pr
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          # Best practice for scripts is to reference via ENV at runtime. Avoid using the expression syntax in the script content directly:
           PR_TARGET_REPO: ${{ github.repository }}
           # If the PR is from a fork, prefix it with `<owner-login>:`, otherwise only the PR branch name is relevant:
           PR_BRANCH: |-
@@ -47,17 +46,11 @@ jobs:
             }}
           
         run: |
-          # First try to get PR number from workflow_run.pull_requests (works for same-repo PRs)
-          PR_NUMBER=$(echo '${{ toJson(github.event.workflow_run.pull_requests) }}' | jq -r '.[0].number // empty')
           FULL_SHA="${{ github.event.workflow_run.head_sha }}"
           SHORT_SHA=$(echo "$FULL_SHA" | cut -c1-8)
-          
-          if [ -n "$PR_NUMBER" ]; then
-            echo "Found PR number from workflow_run.pull_requests: $PR_NUMBER"
-          else
-            gh pr view --repo "${PR_TARGET_REPO}" "${PR_BRANCH}"
-            PR_NUMBER=$(gh pr view --repo "${PR_TARGET_REPO}" "${PR_BRANCH}" --json number --jq '.number')
-          fi
+          # Need to use gh cli instead of `events.workflow_run.pull_requests` because the latter doesn't work for PRs from forks
+          # Refer to https://github.com/orgs/community/discussions/25220
+          PR_NUMBER=$(gh pr view --repo "${PR_TARGET_REPO}" "${PR_BRANCH}" --json number --jq '.number')
           
           if [ -n "$PR_NUMBER" ]; then
             echo "pr-number=$PR_NUMBER" >> $GITHUB_OUTPUT
