@@ -57,7 +57,7 @@ jobs:
           else
             gh pr view --repo "${PR_TARGET_REPO}" "${PR_BRANCH}"
             PR_NUMBER=$(gh pr view --repo "${PR_TARGET_REPO}" "${PR_BRANCH}" \
-             --json 'number' --jq '"number=\(.number)"'
+             --json 'number' --jq '"number=\(.number)"')
           fi
           
           if [ -n "$PR_NUMBER" ]; then
