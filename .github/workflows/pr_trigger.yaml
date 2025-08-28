@@ -32,8 +32,8 @@ jobs:
       - name: Get short SHA
         id: get-short-sha
         run: |
-          ref=${{ github.event.pull_request.head.sha }}
-          SHORT_SHA=$(git rev-parse --short=8 $REF)
+          FULL_SHA=${{ github.event.pull_request.head.sha }}
+          SHORT_SHA=$(echo "$FULL_SHA" | cut -c1-8)
           echo "SHORT_SHA=$SHORT_SHA" >> "$GITHUB_ENV"
       - name: Build Image with Buildah
         id: build-image
