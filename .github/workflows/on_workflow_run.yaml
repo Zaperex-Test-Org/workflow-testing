@@ -56,8 +56,7 @@ jobs:
             echo "Found PR number from workflow_run.pull_requests: $PR_NUMBER"
           else
             gh pr view --repo "${PR_TARGET_REPO}" "${PR_BRANCH}"
-            PR_NUMBER=$(gh pr view --repo "${PR_TARGET_REPO}" "${PR_BRANCH}" \
-             --json 'number' --jq '"number=\(.number)"'
+            PR_NUMBER=$(gh pr view --repo "${PR_TARGET_REPO}" "${PR_BRANCH}" --json number --jq '.number')
           fi
           
           if [ -n "$PR_NUMBER" ]; then
