@@ -22,19 +22,50 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+      - name: print-github-event
+        run: |
+          echo '${{ toJson(github.event) }}' | jq .
+      - name: print-github-event-workflow-run
+        run: |
+          echo '${{ toJson(github.event.workflow_run) }}' | jq .
+      - name: print-github-stuff
+        run: |
+          echo '${{ toJson(github) }}' | jq .
 
       - name: Get PR number from workflow run
         id: get-pr
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Best practice for scripts is to reference via ENV at runtime. Avoid using the expression syntax in the script content directly:
+          PR_TARGET_REPO: ${{ github.repository }}
+          # If the PR is from a fork, prefix it with `<owner-login>:`, otherwise only the PR branch name is relevant:
+          PR_BRANCH: |-
+            ${{
+              (github.event.workflow_run.head_repository.owner.login != github.event.workflow_run.repository.owner.login)
+                && format('{0}:{1}', github.event.workflow_run.head_repository.owner.login, github.event.workflow_run.head_branch)
+                || github.event.workflow_run.head_branch
+            }}
+          
         run: |
+          # First try to get PR number from workflow_run.pull_requests (works for same-repo PRs)
           PR_NUMBER=$(echo '${{ toJson(github.event.workflow_run.pull_requests) }}' | jq -r '.[0].number // empty')
           FULL_SHA="${{ github.event.workflow_run.head_sha }}"
           SHORT_SHA=$(echo "$FULL_SHA" | cut -c1-8)
+          
+          if [ -n "$PR_NUMBER" ]; then
+            echo "Found PR number from workflow_run.pull_requests: $PR_NUMBER"
+          else
+            gh pr view --repo "${PR_TARGET_REPO}" "${PR_BRANCH}"
+            PR_NUMBER=$(gh pr view --repo "${PR_TARGET_REPO}" "${PR_BRANCH}" \
+             --json 'number' --jq '"number=\(.number)"')
+          fi
+          
           if [ -n "$PR_NUMBER" ]; then
             echo "pr-number=$PR_NUMBER" >> $GITHUB_OUTPUT
             echo "short-sha=$SHORT_SHA" >> $GITHUB_OUTPUT
             echo "artifact-name=container-image-pr-$PR_NUMBER-$SHORT_SHA" >> $GITHUB_OUTPUT
           else
-            echo "No PR found in workflow run"
+            echo "Failed to determine PR number"
             exit 1
           fi
 
