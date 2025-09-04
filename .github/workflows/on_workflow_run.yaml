@@ -33,7 +33,7 @@ jobs:
           echo '${{ toJson(github) }}' | jq .
 
       - name: Get PR number from workflow run
-        id: get-pr
+        id: get-pr-info
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PR_TARGET_REPO: ${{ github.repository }}
@@ -53,6 +53,9 @@ jobs:
           PR_NUMBER=$(gh pr view --repo "${PR_TARGET_REPO}" "${PR_BRANCH}" --json number --jq '.number')
           
           if [ -n "$PR_NUMBER" ]; then
+            echo "Found PR number: $PR_NUMBER"
+            echo "PR branch: $PR_BRANCH"
+            echo "Artifact Name: container-image-pr-$PR_NUMBER-$SHORT_SHA"
             echo "pr-number=$PR_NUMBER" >> $GITHUB_OUTPUT
             echo "short-sha=$SHORT_SHA" >> $GITHUB_OUTPUT
             echo "artifact-name=container-image-pr-$PR_NUMBER-$SHORT_SHA" >> $GITHUB_OUTPUT
@@ -68,7 +71,7 @@ jobs:
       - name: Download image artifact
         uses: actions/download-artifact@v4
         with:
-          name: ${{ steps.get-pr.outputs.artifact-name }}
+          name: ${{ steps.get-pr-info.outputs.artifact-name }}
           path: artifacts/
           github-token: ${{ secrets.GITHUB_TOKEN }}
           run-id: ${{ github.event.workflow_run.id }}
@@ -101,9 +104,10 @@ jobs:
 
       - name: Comment the image pull link
         uses: actions/github-script@v7
+        if: ${{ github.event_name == 'workflow_run' && steps.get-pr-info.outputs.pr_number }}
         env:
           PUSHED_TAGS: ${{ steps.load-image.outputs.tags }}
-          PR_NUMBER: ${{ steps.get-pr.outputs.pr-number }}
+          PR_NUMBER: ${{ steps.get-pr-info.outputs.pr-number }}
         with:
           script: |
             const prNumber = process.env.PR_NUMBER;
