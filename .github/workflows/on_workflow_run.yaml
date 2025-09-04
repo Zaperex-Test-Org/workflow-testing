@@ -56,7 +56,7 @@ jobs:
             echo "Found PR number: $PR_NUMBER"
             echo "PR branch: $PR_BRANCH"
             echo "Artifact Name: container-image-pr-$PR_NUMBER-$SHORT_SHA"
-            echo "pr-number=$PR_NUMBER" >> $GITHUB_OUTPUT
+            echo "pr_number=$PR_NUMBER" >> $GITHUB_OUTPUT
             echo "short-sha=$SHORT_SHA" >> $GITHUB_OUTPUT
             echo "artifact-name=container-image-pr-$PR_NUMBER-$SHORT_SHA" >> $GITHUB_OUTPUT
           else
@@ -107,7 +107,7 @@ jobs:
         if: ${{ github.event_name == 'workflow_run' && steps.get-pr-info.outputs.pr_number }}
         env:
           PUSHED_TAGS: ${{ steps.load-image.outputs.tags }}
-          PR_NUMBER: ${{ steps.get-pr-info.outputs.pr-number }}
+          PR_NUMBER: ${{ steps.get-pr-info.outputs.pr_number }}
         with:
           script: |
             const prNumber = process.env.PR_NUMBER;
